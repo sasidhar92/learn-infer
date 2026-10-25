@@ -1,0 +1,75 @@
+=== 00_environment ===
+time       : 2026-10-20 12:01:53
+power      : Now drawing from 'AC Power'
+low power  : powermode            0
+thermal    : Note: No thermal warning level has been recorded Note: No performance warning level has been recorded
+top CPU    : 62.0% /System/Library/PrivateFrameworks/IntelligencePlatformCompute.framework/Versions/A/XPCServices/IntelligencePlatformComputeService.xpc/Contents/MacOS/IntelligencePlatformComputeService 46.5% /Applications/Google 42.4% /Applications/Google
+
+=== 01_bandwidth ===
+ 0.2 GB read in   1.05 ms ->   190 GB/s
+ 2.0 GB read in   4.27 ms ->   468 GB/s
+ 8.0 GB read in  18.15 ms ->   441 GB/s
+
+=== 02_generate_cli ===
+Qwen3-4B-bf16
+    Prompt: 16 tokens, 109.800 tokens-per-sec
+    Generation: 200 tokens, 55.697 tokens-per-sec
+    Peak memory: 8.113 GB
+Qwen3-4B-4bit
+    Prompt: 16 tokens, 316.804 tokens-per-sec
+    Generation: 200 tokens, 162.893 tokens-per-sec
+    Peak memory: 2.370 GB
+
+=== 03_tokens_and_shapes ===
+Model | 36 layers
+ids   : [840, 20772, 3170, 279, 12884, 374, 6303, 13]
+tokens: 8 -> ['Ex', 'plain', ' why', ' the', ' sky', ' is', ' blue', '.']
+prefill logits shape: (1, 8, 151936)
+top-5 next tokens after the prompt:
+     20.88  ' The'
+     18.25  ' \n\n'
+     18.25  ' ('
+     18.12  ' Also'
+     17.38  ' '
+one-token logits shape: (1, 1, 151936)
+
+=== 04_forward_burst_vs_sustained ===
+Qwen3-4B-bf16  burst(20)  18.8 ms | sustained(200)  19.0 ms
+Qwen3-4B-4bit  burst(20)   7.3 ms | sustained(200)   7.1 ms
+
+=== 05_argmax ===
+argmax alone: 0.25 ms  (logits shape (1, 1, 151936))
+
+=== 06_dependent_loop_per_step ===
+Qwen3-4B-bf16
+   steps   0- 19:  18.8 ms
+   steps  20- 39:  18.8 ms
+   steps  40- 59:  18.8 ms
+   steps  60- 79:  18.7 ms
+   steps  80- 99:  18.7 ms
+   steps 100-119:  18.9 ms
+   steps 120-139:  18.8 ms
+   steps 140-159:  18.8 ms
+   steps 160-179:  18.8 ms
+   steps 180-199:  18.8 ms
+   mean  18.8 ms ->  53.2 tok/s
+Qwen3-4B-4bit
+   steps   0- 19:   7.2 ms
+   steps  20- 39:   7.0 ms
+   steps  40- 59:   7.0 ms
+   steps  60- 79:   7.1 ms
+   steps  80- 99:   7.1 ms
+   steps 100-119:   7.1 ms
+   steps 120-139:   7.1 ms
+   steps 140-159:   7.1 ms
+   steps 160-179:   7.1 ms
+   steps 180-199:   7.1 ms
+   mean   7.1 ms -> 141.0 tok/s
+
+=== 00_environment ===
+time       : 2026-10-20 12:02:18
+power      : Now drawing from 'AC Power'
+low power  : powermode            0
+thermal    : Note: No thermal warning level has been recorded Note: No performance warning level has been recorded
+top CPU    : 112.6% /System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd 94.8% /usr/libexec/mobileassetd 5.7% .venv/bin/python
+

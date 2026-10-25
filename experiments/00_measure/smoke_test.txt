@@ -1,0 +1,29 @@
+### bf16 target, block 16
+Generating test split:   0%|          | 0/1319 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1319/1319 [00:00<00:00, 653934.63 examples/s]
+Baseline throughput: 22.04 tok/s
+DFlash throughput:  24.68 tok/s
+Decoding speedup: 1.12
+Average Acceptance length: 3.06
+Acceptance length histogram: ['0.0%', '30.0%', '25.9%', '16.8%', '7.4%', '5.0%', '3.8%', '3.1%', '4.1%', '1.2%', '1.0%', '0.7%', '0.2%', '0.5%', '0.0%', '0.0%', '0.2%']
+
+### 4-bit target, block 5
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Baseline throughput: 70.50 tok/s
+DFlash throughput:  62.79 tok/s
+Decoding speedup: 0.89
+Average Acceptance length: 2.59
+Acceptance length histogram: ['0.0%', '33.9%', '23.9%', '14.7%', '7.2%', '20.3%']
+
+### bf16 target, block 16, --reasoning off
+Baseline throughput: 23.76 tok/s
+DFlash throughput:  55.56 tok/s
+Decoding speedup: 2.34
+Average Acceptance length: 6.74
+Acceptance length histogram: ['0.0%', '11.8%', '14.1%', '12.9%', '5.9%', '10.0%', '5.9%', '4.7%', '4.1%', '1.8%', '4.1%', '5.3%', '4.7%', '1.2%', '1.8%', '2.4%', '9.4%']
+
+### 4-bit target, block 5, --reasoning off
+Baseline throughput: 74.11 tok/s
+DFlash throughput:  88.90 tok/s
+Decoding speedup: 1.20
+Average Acceptance length: 3.50
+Acceptance length histogram: ['0.0%', '18.3%', '16.1%', '8.7%', '9.6%', '47.3%']

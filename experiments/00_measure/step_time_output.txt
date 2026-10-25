@@ -1,0 +1,2 @@
+Qwen3-4B-bf16    raw forward step  39.05 ms | lm_head alone  5.00 ms
+Qwen3-4B-4bit    raw forward step  17.34 ms | lm_head alone  1.04 ms

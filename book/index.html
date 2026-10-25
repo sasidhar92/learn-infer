@@ -1,0 +1,794 @@
+<title>Inference Engineering Notebook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a lab notebook. Fixed left contents rail on wide screens, single column on phones.
+   Measured numbers are copper; theoretical ceilings are steel blue. */
+:root {
+  --paper: #f7f6f2;
+  --paper-2: #efede6;
+  --ink: #1d2230;
+  --ink-2: #4a5062;
+  --ink-3: #7b8194;
+  --rule: #d9d6cc;
+  --copper: #b5542a;
+  --copper-soft: #f3e1d6;
+  --steel: #2f5f8a;
+  --steel-soft: #dbe6f0;
+  --moss: #3f7a4f;
+  --moss-soft: #dfeadf;
+  --lock: #a9ada0;
+  --display: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15181f; --paper-2: #1d2129; --ink: #e8e6df; --ink-2: #b9b7ae; --ink-3: #868a97;
+    --rule: #2e333e; --copper: #e08a5e; --copper-soft: #3a2a21; --steel: #7fb0dc; --steel-soft: #1f2e3d;
+    --moss: #86b991; --moss-soft: #1f2e24; --lock: #5b5f68; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #15181f; --paper-2: #1d2129; --ink: #e8e6df; --ink-2: #b9b7ae; --ink-3: #868a97;
+  --rule: #2e333e; --copper: #e08a5e; --copper-soft: #3a2a21; --steel: #7fb0dc; --steel-soft: #1f2e3d;
+  --moss: #86b991; --moss-soft: #1f2e24; --lock: #5b5f68; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--display); font-size: 18px; line-height: 1.6; }
+a { color: var(--steel); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 10px;
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; font-family: var(--sans); font-size: 13px; color: var(--ink-2); }
+.topbar b { font-family: var(--display); font-weight: 600; font-size: 17px; color: var(--ink); }
+.topbar .where { margin-left: auto; }
+
+.shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px; max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 80px; }
+nav.toc { position: sticky; top: 64px; align-self: start; font-family: var(--sans); font-size: 13.5px; line-height: 1.45; max-height: calc(100vh - 90px); overflow-y: auto; }
+nav.toc h2 { font-family: var(--sans); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin: 18px 0 8px; font-weight: 600; }
+nav.toc h2:first-child { margin-top: 0; }
+nav.toc a { display: block; color: var(--ink-2); padding: 4px 0 4px 10px; border-left: 2px solid transparent; }
+nav.toc a:hover { color: var(--ink); text-decoration: none; border-left-color: var(--rule); }
+nav.toc a.locked { color: var(--lock); }
+nav.toc a .n { display: inline-block; width: 22px; color: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+
+main { min-width: 0; }
+.chapter { max-width: 680px; padding-bottom: 56px; margin-bottom: 56px; border-bottom: 1px solid var(--rule); }
+.chapter:last-child { border-bottom: 0; }
+.eyebrow { font-family: var(--sans); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin: 0 0 6px; }
+h1 { font-family: var(--display); font-weight: 500; font-size: 44px; line-height: 1.1; margin: 0 0 18px; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-family: var(--display); font-weight: 500; font-size: 32px; line-height: 1.15; margin: 0 0 16px; text-wrap: balance; }
+h3 { font-family: var(--sans); font-weight: 600; font-size: 16px; margin: 32px 0 8px; color: var(--ink); }
+p { margin: 0 0 16px; }
+p.lede { font-size: 21px; line-height: 1.45; color: var(--ink-2); font-style: italic; }
+ul, ol { padding-left: 22px; margin: 0 0 16px; }
+li { margin-bottom: 6px; }
+code, pre { font-family: var(--mono); font-size: 14.5px; }
+code { background: var(--paper-2); padding: 1px 5px; border-radius: 3px; }
+pre { background: var(--paper-2); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; overflow-x: auto; line-height: 1.5; margin: 0 0 18px; }
+pre code { background: none; padding: 0; }
+.status { display: inline-block; font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 999px; margin-left: 10px; vertical-align: middle; }
+.status.locked { background: var(--paper-2); color: var(--ink-3); }
+
+figure { margin: 26px 0 28px; }
+figure svg { width: 100%; height: auto; display: block; }
+figcaption { font-family: var(--sans); font-size: 13.5px; color: var(--ink-2); margin-top: 10px; line-height: 1.5; }
+figcaption b { color: var(--ink); font-weight: 600; }
+
+.callout { border-left: 3px solid var(--copper); background: var(--copper-soft); padding: 12px 16px; margin: 20px 0; border-radius: 0 6px 6px 0; }
+.callout.steel { border-left-color: var(--steel); background: var(--steel-soft); }
+.callout.moss { border-left-color: var(--moss); background: var(--moss-soft); }
+.callout .k { font-family: var(--sans); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--ink-2); display: block; margin-bottom: 4px; }
+.callout p:last-child { margin-bottom: 0; }
+
+table { border-collapse: collapse; width: 100%; font-family: var(--sans); font-size: 14.5px; margin: 0 0 18px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+td.num, th.num { text-align: right; }
+.tablewrap { overflow-x: auto; }
+.mine { color: var(--copper); font-weight: 600; }
+.ceil { color: var(--steel); font-weight: 600; }
+
+.exercise { border: 1px solid var(--rule); border-radius: 8px; padding: 18px 20px; margin: 24px 0; background: var(--paper-2); }
+.exercise .k { font-family: var(--sans); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--copper); display: block; margin-bottom: 8px; }
+.exercise ol, .exercise ul { margin-bottom: 0; }
+
+.machine { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 20px 0 26px; font-family: var(--sans); }
+.machine div { border-top: 2px solid var(--rule); padding-top: 8px; }
+.machine .l { font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.machine .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.machine .v small { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+
+.outline { list-style: none; padding: 0; }
+.outline li { padding: 10px 0; border-bottom: 1px dashed var(--rule); display: flex; gap: 14px; align-items: baseline; }
+.outline li .n { font-family: var(--mono); font-size: 13px; color: var(--ink-3); width: 28px; flex: none; }
+.outline li b { font-weight: 600; font-family: var(--sans); font-size: 15.5px; }
+.outline li span.d { color: var(--ink-2); font-size: 16px; }
+
+.glossary dt { font-family: var(--sans); font-weight: 600; font-size: 15px; margin-top: 12px; }
+.glossary dd { margin: 2px 0 0 0; color: var(--ink-2); }
+
+.summary { border-top: 2px solid var(--ink); padding-top: 12px; margin-top: 36px; }
+.summary .k { font-family: var(--sans); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--ink-3); display: block; margin-bottom: 6px; }
+.summary ul { margin-bottom: 0; }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; gap: 20px; padding-block: 20px 60px; }
+  nav.toc { position: static; max-height: none; border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; }
+  h1 { font-size: 34px; } h2 { font-size: 27px; } body { font-size: 17px; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<header class="topbar">
+  <b>Inference Engineering Notebook</b>
+  <span>How language models answer, measured on one laptop</span>
+  <span class="where">Part I complete through Chapter 5</span>
+</header>
+
+<div class="shell">
+<nav class="toc" aria-label="Contents">
+  <h2>Front matter</h2>
+  <a href="#preface"><span class="n">0</span>How to read this book</a>
+  <h2>Part I · Foundations</h2>
+  <a href="#ch1"><span class="n">1</span>The map</a>
+  <a href="#ch2"><span class="n">2</span>How a model makes a token</a>
+  <a href="#ch3"><span class="n">3</span>Memory bandwidth</a>
+  <a href="#ch4"><span class="n">4</span>The roofline</a>
+  <a href="#ch5"><span class="n">5</span>Profiling a token</a>
+  <a href="#ch6" class="locked"><span class="n">6</span>Prefill, decode, KV cache</a>
+  <a href="#ch6" class="locked"><span class="n">7</span>The free lunch</a>
+  <a href="#ch6" class="locked"><span class="n">8</span>Honest benchmarking</a>
+  <h2>Part II · One request, faster</h2>
+  <a href="#part2" class="locked"><span class="n">9</span>Quantization</a>
+  <a href="#part2" class="locked"><span class="n">10</span>Speculative decoding</a>
+  <a href="#part2" class="locked"><span class="n">11</span>DFlash</a>
+  <a href="#part2" class="locked"><span class="n">12</span>Kernels and attention</a>
+  <h2>Part III · Many requests</h2>
+  <a href="#part3" class="locked"><span class="n">13</span>Batching</a>
+  <a href="#part3" class="locked"><span class="n">14</span>KV cache memory</a>
+  <a href="#part3" class="locked"><span class="n">15</span>Many devices</a>
+  <h2>Back matter</h2>
+  <a href="#lab"><span class="n">A</span>Lab notebook</a>
+  <a href="#repro"><span class="n">B</span>Reproducing the numbers</a>
+  <a href="#tooling"><span class="n">C</span>Tooling notes</a>
+  <a href="#glossary"><span class="n">D</span>Glossary</a>
+</nav>
+
+<main>
+
+<section class="chapter" id="preface">
+  <p class="eyebrow">Front matter</p>
+  <h1>Inference Engineering, measured on one laptop</h1>
+  <p class="lede">A short book about why language models answer at the speed they do, and how to make them faster. Every number in it was measured on a single laptop, and every experiment can be re-run in a few minutes.</p>
+
+  <h3>Who this is for</h3>
+  <p>Someone who can run a Python script and wants to understand inference from the ground up: not a catalogue of techniques, but the small number of physical facts that all the techniques are built on. No prior knowledge of GPUs or machine-learning systems is assumed. Readers who know the field will recognise the material; the point here is to measure it rather than recite it.</p>
+
+  <h3>How this book works</h3>
+  <p>Each chapter teaches one idea and attaches an experiment. The experiments follow a fixed protocol: <b>predict</b> the result and write it down, <b>run</b> the script, then <b>interpret</b> the gap between prediction and measurement. The gap is where the learning is. A chapter is finished when the reader can explain its idea to someone else without the book.</p>
+  <p>Later chapters are shown as outlines so the shape of the whole subject is visible from the start. They fill in as the experiments are done.</p>
+
+  <h3>The reference machine</h3>
+  <p>All numbers come from one machine, described below. Readers on other hardware should expect different absolute speeds and the same ratios. The chapters say which is which.</p>
+  <div class="machine">
+    <div><div class="l">Chip</div><div class="v">Apple M4 Max</div></div>
+    <div><div class="l">Unified memory</div><div class="v">128 <small>GB</small></div></div>
+    <div><div class="l">Bandwidth, spec</div><div class="v">546 <small>GB/s</small></div></div>
+    <div><div class="l">Bandwidth, measured</div><div class="v mine">441–469 <small>GB/s</small></div></div>
+    <div><div class="l">Software</div><div class="v" style="font-size:15px">MLX 0.32 · mlx-lm 0.31 · Python 3.12</div></div>
+    <div><div class="l">Working model</div><div class="v" style="font-size:15px">Qwen3-4B, bf16 and 4-bit</div></div>
+  </div>
+
+  <h3>Two colours</h3>
+  <p>In every figure, <span class="ceil">steel blue</span> marks a theoretical limit: something arithmetic or physics says cannot be exceeded. <span class="mine">Copper</span> marks a measurement. Most of this book is about the distance between the two, and what fills it.</p>
+</section>
+
+<section class="chapter" id="ch1">
+  <p class="eyebrow">Part I · Foundations · Chapter 1</p>
+  <h2>The map</h2>
+  <p>"Inference engineering" names a large field, but it has a simple shape: eight topics in three layers, each layer resting on the one below.</p>
+
+  <figure>
+    <svg viewBox="0 0 680 352" role="img" aria-labelledby="f1t"><title id="f1t">Three layers of inference engineering with eight topics</title>
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L8 5L1 9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></marker></defs>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)">
+        <rect x="20" y="20" width="640" height="92" rx="10" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <text x="32" y="40" font-size="11.5" fill="var(--ink-3)" font-weight="600" letter-spacing="1.2">LAYER 1 · FOUNDATIONS · PART I</text>
+        <rect x="60" y="52" width="270" height="48" rx="7" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="195" y="72" text-anchor="middle" font-size="14" font-weight="600">1 · How a model makes a token</text>
+        <text x="195" y="90" text-anchor="middle" font-size="12" fill="var(--ink-2)">reading weights, prefill, decode</text>
+        <rect x="350" y="52" width="270" height="48" rx="7" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="485" y="72" text-anchor="middle" font-size="14" font-weight="600">2 · Measuring honestly</text>
+        <text x="485" y="90" text-anchor="middle" font-size="12" fill="var(--ink-2)">bandwidth, roofline, profiling</text>
+
+        <line x1="340" y1="112" x2="340" y2="134" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#arr)" color="var(--ink-3)"/>
+
+        <rect x="20" y="136" width="640" height="92" rx="10" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <text x="32" y="156" font-size="11.5" fill="var(--ink-3)" font-weight="600" letter-spacing="1.2">LAYER 2 · ONE REQUEST, FASTER · PART II</text>
+        <rect x="40" y="168" width="190" height="48" rx="7" fill="var(--steel-soft)" stroke="var(--steel)"/>
+        <text x="135" y="188" text-anchor="middle" font-size="14" font-weight="600">3 · Quantization</text>
+        <text x="135" y="206" text-anchor="middle" font-size="12" fill="var(--ink-2)">fewer bytes to read</text>
+        <rect x="245" y="168" width="190" height="48" rx="7" fill="var(--steel-soft)" stroke="var(--steel)"/>
+        <text x="340" y="188" text-anchor="middle" font-size="14" font-weight="600">4 · Speculative decoding</text>
+        <text x="340" y="206" text-anchor="middle" font-size="12" fill="var(--ink-2)">more tokens per read · DFlash</text>
+        <rect x="450" y="168" width="190" height="48" rx="7" fill="var(--steel-soft)" stroke="var(--steel)"/>
+        <text x="545" y="188" text-anchor="middle" font-size="14" font-weight="600">5 · Kernels, attention</text>
+        <text x="545" y="206" text-anchor="middle" font-size="12" fill="var(--ink-2)">waste less per read</text>
+
+        <line x1="340" y1="228" x2="340" y2="250" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#arr)" color="var(--ink-3)"/>
+
+        <rect x="20" y="252" width="640" height="92" rx="10" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <text x="32" y="272" font-size="11.5" fill="var(--ink-3)" font-weight="600" letter-spacing="1.2">LAYER 3 · MANY REQUESTS AT ONCE · PART III</text>
+        <rect x="40" y="284" width="190" height="48" rx="7" fill="var(--paper-2)" stroke="var(--lock)"/>
+        <text x="135" y="304" text-anchor="middle" font-size="14" font-weight="600">6 · Batching</text>
+        <text x="135" y="322" text-anchor="middle" font-size="12" fill="var(--ink-2)">share one read</text>
+        <rect x="245" y="284" width="190" height="48" rx="7" fill="var(--paper-2)" stroke="var(--lock)"/>
+        <text x="340" y="304" text-anchor="middle" font-size="14" font-weight="600">7 · KV cache memory</text>
+        <text x="340" y="322" text-anchor="middle" font-size="12" fill="var(--ink-2)">paging, prefix sharing</text>
+        <rect x="450" y="284" width="190" height="48" rx="7" fill="var(--paper-2)" stroke="var(--lock)"/>
+        <text x="545" y="304" text-anchor="middle" font-size="14" font-weight="600">8 · Many devices</text>
+        <text x="545" y="322" text-anchor="middle" font-size="12" fill="var(--ink-2)">tensor, pipeline, expert</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 1.1</b> The whole field on one page. Layer 2 is a laptop's world. Layer 3 is what serving systems such as vLLM and SGLang do on servers.</figcaption>
+  </figure>
+
+  <p>Layer 1 is about one question: what physically happens when a model produces a token, and how do we measure it without fooling ourselves. Layer 2 takes the three ways of making a single request faster. Layer 3 is about sharing a machine among many requests, where the arithmetic changes.</p>
+  <p>Much of the recent excitement in the field, including the DFlash paper that this book uses as a worked example in Chapter 11, lives in one box of Layer 2. Part I exists because that box cannot be understood, or its claims checked, without the layer underneath it.</p>
+</section>
+
+<section class="chapter" id="ch2">
+  <p class="eyebrow">Chapter 2</p>
+  <h2>How a model makes a token</h2>
+  <p class="lede">To write one word, the chip reads the entire book.</p>
+  <p>A language model's weights are a very large collection of numbers. Qwen3-4B holds about four billion of them. Stored in bf16, two bytes each, that is an 8 GB book. To produce one token, the chip must read every page of that book, do a little arithmetic with each page, and write down a single word. For the next token it reads the whole book again.</p>
+
+  <figure>
+    <svg viewBox="0 0 680 230" role="img" aria-labelledby="f2t"><title id="f2t">Each token requires a full pass over the weights</title>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)">
+        <rect x="40" y="30" width="150" height="170" rx="6" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="1.2"/>
+        <rect x="52" y="30" width="138" height="170" rx="4" fill="none" stroke="var(--steel)" stroke-width="0.7" opacity="0.5"/>
+        <text x="115" y="106" text-anchor="middle" font-size="15" font-weight="600">8 GB of weights</text>
+        <text x="115" y="126" text-anchor="middle" font-size="12.5" fill="var(--ink-2)">read cover to cover</text>
+        <text x="115" y="144" text-anchor="middle" font-size="12.5" fill="var(--ink-2)">once per token</text>
+
+        <path d="M200 70 C 260 70, 260 70, 318 70" fill="none" stroke="var(--copper)" stroke-width="1.6" marker-end="url(#arr)" color="var(--copper)"/>
+        <path d="M200 115 C 260 115, 260 115, 318 115" fill="none" stroke="var(--copper)" stroke-width="1.6" marker-end="url(#arr)" color="var(--copper)"/>
+        <path d="M200 160 C 260 160, 260 160, 318 160" fill="none" stroke="var(--copper)" stroke-width="1.6" marker-end="url(#arr)" color="var(--copper)"/>
+        <text x="259" y="60" text-anchor="middle" font-size="11.5" fill="var(--copper)">read</text>
+        <text x="259" y="105" text-anchor="middle" font-size="11.5" fill="var(--copper)">read</text>
+        <text x="259" y="150" text-anchor="middle" font-size="11.5" fill="var(--copper)">read</text>
+
+        <rect x="330" y="52" width="110" height="36" rx="5" fill="var(--paper-2)" stroke="var(--rule)"/>
+        <text x="385" y="75" text-anchor="middle" font-size="14" font-family="IBM Plex Mono, monospace">The</text>
+        <rect x="330" y="97" width="110" height="36" rx="5" fill="var(--paper-2)" stroke="var(--rule)"/>
+        <text x="385" y="120" text-anchor="middle" font-size="14" font-family="IBM Plex Mono, monospace">sky</text>
+        <rect x="330" y="142" width="110" height="36" rx="5" fill="var(--paper-2)" stroke="var(--rule)"/>
+        <text x="385" y="165" text-anchor="middle" font-size="14" font-family="IBM Plex Mono, monospace">is</text>
+
+        <line x1="470" y1="40" x2="470" y2="190" stroke="var(--rule)"/>
+        <text x="490" y="62" font-size="13" fill="var(--ink-2)">one token</text>
+        <text x="490" y="80" font-size="13" fill="var(--ink-2)">= one full read</text>
+        <text x="490" y="116" font-size="13" fill="var(--ink-2)">read time at 441 GB/s:</text>
+        <text x="490" y="136" font-size="15" font-weight="600" fill="var(--steel)">8 GB ÷ 441 GB/s ≈ 18 ms</text>
+        <text x="490" y="166" font-size="13" fill="var(--ink-2)">so at most</text>
+        <text x="490" y="186" font-size="15" font-weight="600" fill="var(--steel)">≈ 55 tokens per second</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 2.1</b> Autoregressive decoding. The arithmetic per token is tiny; the reading is not. The GPU spends most of each token waiting for bytes.</figcaption>
+  </figure>
+
+  <p>The chip reads memory at a fixed speed. On the reference machine that speed is about 441 GB/s (Chapter 3 shows how it is measured). Reading 8 GB therefore takes about 18 milliseconds, and in those 18 milliseconds exactly one token appears. The arithmetic the chip performs with those weights takes far less time than the reading. The GPU is mostly idle, waiting on memory.</p>
+
+  <div class="callout">
+    <span class="k">The one idea</span>
+    <p>Decoding is <b>memory-bound</b>. The limit is how fast bytes move from memory to the chip, not how fast the chip can compute.</p>
+  </div>
+
+  <h3>Two things almost everyone gets wrong at first</h3>
+  <p><b>The weights are not being calculated.</b> They were calculated once, during training, on thousands of GPUs. At inference time they are frozen numbers on disk, read but never changed. The only numbers computed on the laptop are the <b>activations</b>: temporary values that flow through the layers for this one input, used once and discarded. A book is written once and read many times. Inference is reading.</p>
+  <p><b>The model is not answering a question.</b> It knows how to do exactly one thing: given some text, guess the next token. An answer is produced by asking that one question over and over. The prompt is read in one pass, the model guesses the token that comes after it, that guess is appended, and the model is asked again. Two hundred rounds make a two-hundred-token answer, and each round is one full read of the book.</p>
+
+  <figure>
+    <svg viewBox="0 0 680 292" role="img" aria-labelledby="f2b"><title id="f2b">Prefill then the next-token loop</title>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)">
+        <text x="40" y="32" font-size="13.5" font-weight="600">Step 0 · prefill: read every prompt token in one pass</text>
+        <g font-size="12.5" text-anchor="middle">
+          <rect x="40" y="44" width="68" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/><text x="74" y="62">Explain</text>
+          <rect x="114" y="44" width="48" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/><text x="138" y="62">why</text>
+          <rect x="168" y="44" width="46" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/><text x="191" y="62">the</text>
+          <rect x="220" y="44" width="46" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/><text x="243" y="62">sky</text>
+          <rect x="272" y="44" width="38" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/><text x="291" y="62">is</text>
+          <rect x="316" y="44" width="52" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/><text x="342" y="62">blue</text>
+          <rect x="374" y="44" width="28" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/><text x="388" y="62">.</text>
+        </g>
+        <line x1="410" y1="58" x2="446" y2="58" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#arr)" color="var(--ink-3)"/>
+        <rect x="452" y="44" width="70" height="28" rx="4" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="487" y="62" font-size="13" font-weight="600" text-anchor="middle">The</text>
+        <text x="532" y="62" font-size="12" fill="var(--ink-2)">← guessed</text>
+
+        <text x="40" y="118" font-size="13.5" font-weight="600">Step 1 · decode: append the guess, guess again</text>
+        <rect x="40" y="130" width="362" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/>
+        <text x="221" y="148" font-size="12.5" text-anchor="middle" fill="var(--ink-2)">Explain why the sky is blue .</text>
+        <rect x="408" y="130" width="46" height="28" rx="4" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="431" y="148" font-size="12.5" text-anchor="middle">The</text>
+        <line x1="462" y1="144" x2="498" y2="144" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#arr)" color="var(--ink-3)"/>
+        <rect x="504" y="130" width="70" height="28" rx="4" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="539" y="148" font-size="13" font-weight="600" text-anchor="middle">sky</text>
+
+        <text x="40" y="204" font-size="13.5" font-weight="600">Step 2 · and again, one token per full read of the weights</text>
+        <rect x="40" y="216" width="362" height="28" rx="4" fill="var(--paper-2)" stroke="var(--rule)"/>
+        <text x="221" y="234" font-size="12.5" text-anchor="middle" fill="var(--ink-2)">Explain why the sky is blue .</text>
+        <rect x="408" y="216" width="46" height="28" rx="4" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="431" y="234" font-size="12.5" text-anchor="middle">The</text>
+        <rect x="460" y="216" width="46" height="28" rx="4" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="483" y="234" font-size="12.5" text-anchor="middle">sky</text>
+        <line x1="514" y1="230" x2="550" y2="230" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#arr)" color="var(--ink-3)"/>
+        <rect x="556" y="216" width="60" height="28" rx="4" fill="var(--copper-soft)" stroke="var(--copper)"/>
+        <text x="586" y="234" font-size="13" font-weight="600" text-anchor="middle">is</text>
+
+        <text x="40" y="280" font-size="12" fill="var(--ink-2)">Grey = given. Copper = produced by the model, one per step. Each step reads all 8 GB once.</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 2.2</b> The whole of generation is this loop. Prefill also produces a guess after every prompt token, but only the last one is used; the rest are a free by-product of reading the prompt in one pass.</figcaption>
+  </figure>
+
+  <h3>What the model actually outputs</h3>
+  <p>A model never outputs a word. It outputs a <b>score for every token it knows</b>. Qwen3's vocabulary has 151,936 entries: whole words, word pieces, punctuation, code symbols. After reading "Explain why the sky is blue." the model returns 151,936 numbers, one per entry, called <b>logits</b>. A high logit means "this is likely to come next". On the reference machine the five highest after that prompt were:</p>
+  <pre><code>  20.88  ' The'
+  18.25  ' \n\n'
+  18.25  ' ('
+  18.12  ' Also'
+  17.38  ' '</code></pre>
+  <p>Turning logits into a choice takes one of two steps. <b>Argmax</b> picks the highest, which is greedy decoding, the behaviour at temperature 0; the same prompt then always gives the same answer. Or <b>softmax</b> converts the logits into probabilities that sum to one and a token is sampled from them, with temperature controlling how much weight the runners-up get. Chapter 10 depends on this distinction: a speculative decoder is only correct if it reproduces the same distribution, not merely the same argmax.</p>
+  <p>Producing the logits is the model's last step, a multiplication by a matrix with one row per vocabulary entry: 151,936 × 2,560 numbers, about 0.78 GB in bf16, or a tenth of the book. It is called the <b>lm_head</b>, and it is read once per token like everything else.</p>
+
+  <h3>One detail about prompts</h3>
+  <p>Fed raw text, the model continues it as if writing an article. A chat command such as <code>mlx_lm.generate</code> first wraps the prompt in a chat template, roughly <code>&lt;|user|&gt; Explain why the sky is blue. &lt;|assistant|&gt;</code>, so that "the next token after the prompt" is the first word of a reply. Same mechanism, different framing. The model never knows it is answering a question; it only knows what text usually comes next. It also means the prompt the model sees is longer than the text typed: eight raw tokens became sixteen with the template on the reference machine.</p>
+
+  <h3>Why this one idea predicts the next layer</h3>
+  <p>If decoding is memory-bound there are only three ways to make it faster, and they are the three topics of Part II:</p>
+  <ul>
+    <li><b>Make the book smaller.</b> Store the weights in fewer bytes. That is quantization (Chapter 9). The 4-bit Qwen3-4B is a 2.3 GB book instead of 8 GB.</li>
+    <li><b>Write several words per read.</b> If one pass over the weights could produce many tokens instead of one, each token would cost a fraction of a read. That is speculative decoding (Chapter 10), and DFlash's contribution is a drafter that produces up to 16 tokens per read (Chapter 11).</li>
+    <li><b>Waste less while reading.</b> Make the read itself run at full speed and remove delays around it. That is the world of kernels (Chapter 12).</li>
+  </ul>
+
+  <div class="summary">
+    <span class="k">Chapter 2 in three sentences</span>
+    <ul>
+      <li>The weights are fixed; the model reads all of them once per token.</li>
+      <li>Each read yields one guess, a vector of 151,936 logits; the answer is the guesses laid end to end.</li>
+      <li>Because reading dominates, speed comes from smaller books, more words per read, or less waste per read.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="chapter" id="ch3">
+  <p class="eyebrow">Chapter 3</p>
+  <h2>Memory bandwidth</h2>
+  <p class="lede">The spec sheet gives a number. The machine gives a different one. Use the machine's.</p>
+
+  <h3>Where the spec number comes from</h3>
+  <p>Bandwidth is how many bytes per second can flow between the memory chips and the processor. It is a product of two things. The <b>bus width</b> is how many wires carry data at once, like lanes on a highway. The <b>transfer rate</b> is how many transfers each wire makes per second.</p>
+
+  <figure>
+    <svg viewBox="0 0 680 150" role="img" aria-labelledby="f3t"><title id="f3t">Bandwidth equals bus width times transfer rate</title>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)">
+        <g stroke="var(--steel)" stroke-width="2.2" opacity="0.85">
+          <line x1="40" y1="34" x2="300" y2="34"/><line x1="40" y1="46" x2="300" y2="46"/><line x1="40" y1="58" x2="300" y2="58"/><line x1="40" y1="70" x2="300" y2="70"/>
+          <line x1="40" y1="82" x2="300" y2="82"/><line x1="40" y1="94" x2="300" y2="94"/><line x1="40" y1="106" x2="300" y2="106"/><line x1="40" y1="118" x2="300" y2="118"/>
+        </g>
+        <text x="170" y="140" text-anchor="middle" font-size="12.5" fill="var(--ink-2)">512 wires = 64 bytes per transfer</text>
+        <text x="330" y="82" font-size="22" fill="var(--ink-3)">×</text>
+        <text x="420" y="66" font-size="15" font-weight="600" text-anchor="middle">8,533 million</text>
+        <text x="420" y="86" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">transfers per second</text>
+        <text x="420" y="104" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">(LPDDR5X-8533)</text>
+        <text x="500" y="82" font-size="22" fill="var(--ink-3)">=</text>
+        <text x="590" y="78" font-size="20" font-weight="600" fill="var(--steel)" text-anchor="middle">546 GB/s</text>
+        <text x="590" y="98" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">spec sheet</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 3.1</b> The M4 Max has a 512-bit memory bus running LPDDR5X at 8533 MT/s. Multiply and you get Apple's advertised 546 GB/s.</figcaption>
+  </figure>
+
+  <div class="tablewrap"><table>
+    <tr><th>Chip</th><th>Bus width</th><th>Rate</th><th class="num">Bandwidth</th><th class="num">vs. reference</th></tr>
+    <tr><td>Apple M4 Pro</td><td>256-bit</td><td>8533 MT/s</td><td class="num">273 GB/s</td><td class="num">0.5×</td></tr>
+    <tr><td><b>Apple M4 Max</b> (reference)</td><td>512-bit</td><td>8533 MT/s</td><td class="num">546 GB/s</td><td class="num">1×</td></tr>
+    <tr><td>NVIDIA H100 (data-centre GPU)</td><td>5120-bit HBM3</td><td>~5.2 Gbps</td><td class="num">~3,350 GB/s</td><td class="num">~6×</td></tr>
+  </table></div>
+  <p>A data-centre GPU reads the book about six times faster than the reference laptop. That one fact explains most of the gap between tokens-per-second figures in papers and figures measured at home. It is also why this book compares <i>ratios</i> and <i>fractions of a ceiling</i> rather than raw speeds across machines.</p>
+
+  <h3>Measuring it</h3>
+  <p>Spec numbers are peaks that no real program reaches. Memory cells need refresh cycles, the bus switches between reading and writing, and the processor does not always have the next request ready. The achievable number is found by creating a large array, making the GPU read all of it once with a sum, and dividing bytes by seconds. Script 01 in Appendix B does this for three sizes:</p>
+  <pre><code>0.2 GB read in   1.05 ms ->   190 GB/s
+2.0 GB read in   4.27 ms ->   468 GB/s
+8.0 GB read in  18.15 ms ->   441 GB/s</code></pre>
+  <p>The large reads give <span class="mine">441 to 469 GB/s</span>, 81 to 86% of the spec, which is a normal fraction for this class of hardware. The small read gives much less, and that difference is the chapter's second lesson.</p>
+
+  <h3>Fixed overhead</h3>
+  <p>Every time the CPU asks the GPU to do something, there is a fixed cost before any bytes move: packaging the request, handing it over, starting the small program. On the reference machine that cost is roughly half a millisecond. A 2 GB read should take 4.3 ms, so the half millisecond is barely visible. A 0.2 GB read should take 0.43 ms, so the same half millisecond more than doubles the job and the apparent bandwidth falls by more than half.</p>
+
+  <figure>
+    <svg viewBox="0 0 680 250" role="img" aria-labelledby="f3b"><title id="f3b">Apparent bandwidth versus size of the read</title>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)" font-variant-numeric="tabular-nums">
+        <line x1="90" y1="30" x2="90" y2="200" stroke="var(--rule)"/>
+        <line x1="90" y1="200" x2="640" y2="200" stroke="var(--rule)"/>
+        <g font-size="11.5" fill="var(--ink-3)" text-anchor="end">
+          <text x="82" y="204">0</text><text x="82" y="146.5">200</text><text x="82" y="89">400</text><text x="82" y="44">550</text>
+        </g>
+        <text x="20" y="120" font-size="11.5" fill="var(--ink-3)" transform="rotate(-90 20 120)" text-anchor="middle">GB/s</text>
+        <line x1="90" y1="43.3" x2="640" y2="43.3" stroke="var(--steel)" stroke-dasharray="5 4" stroke-width="1.2"/>
+        <text x="636" y="38" font-size="11.5" fill="var(--steel)" text-anchor="end">spec 546</text>
+
+        <rect x="150" y="145.5" width="110" height="54.5" fill="var(--copper)" opacity="0.85"/>
+        <text x="205" y="139" text-anchor="middle" font-size="13" font-weight="600" fill="var(--copper)">190</text>
+        <text x="205" y="222" text-anchor="middle" font-size="12.5">0.2 GB read</text>
+        <text x="205" y="238" text-anchor="middle" font-size="11.5" fill="var(--ink-3)">overhead ≈ half the job</text>
+
+        <rect x="315" y="65.7" width="110" height="134.3" fill="var(--copper)" opacity="0.85"/>
+        <text x="370" y="59" text-anchor="middle" font-size="13" font-weight="600" fill="var(--copper)">468</text>
+        <text x="370" y="222" text-anchor="middle" font-size="12.5">2 GB read</text>
+        <text x="370" y="238" text-anchor="middle" font-size="11.5" fill="var(--ink-3)">overhead ≈ 10%</text>
+
+        <rect x="480" y="73.4" width="110" height="126.6" fill="var(--copper)" opacity="0.85"/>
+        <text x="535" y="67" text-anchor="middle" font-size="13" font-weight="600" fill="var(--copper)">441</text>
+        <text x="535" y="222" text-anchor="middle" font-size="12.5">8 GB read</text>
+        <text x="535" y="238" text-anchor="middle" font-size="11.5" fill="var(--ink-3)">overhead ≈ 3%</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 3.2</b> The hardware's bandwidth is constant. A fixed cost of roughly half a millisecond per operation is what makes the small read look slow.</figcaption>
+  </figure>
+
+  <div class="callout">
+    <span class="k">Rule to keep</span>
+    <p><b>Small jobs are dominated by fixed overhead. Big jobs are dominated by bandwidth.</b> This sentence explains why a quantized model never gets the full speedup its byte count promises (Chapter 4), why prefill on a short prompt cannot be measured meaningfully (Chapter 5), and, later, why speculative decoders prefer to verify many tokens at once (Chapter 7).</p>
+  </div>
+
+  <div class="exercise">
+    <span class="k">Exercise 3.1 · measure your own bandwidth</span>
+    <ol>
+      <li>Predict how long a 2 GB read takes at your chip's spec bandwidth.</li>
+      <li>Run <code>experiments/verify/01_bandwidth.py</code> and compare. Expect 75 to 90% of spec on a healthy machine.</li>
+      <li>Note how the 0.2 GB result falls short and estimate the fixed overhead in milliseconds from it.</li>
+    </ol>
+  </div>
+
+  <div class="summary">
+    <span class="k">Chapter 3 in three sentences</span>
+    <ul>
+      <li>Bandwidth is bus width times transfer rate; the reference machine's spec is 546 GB/s and it delivers about 441 to 469 in practice.</li>
+      <li>Measure it on the machine; never plug in the spec sheet.</li>
+      <li>Every GPU operation carries a fixed cost, which dominates small jobs and vanishes in large ones.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="chapter" id="ch4">
+  <p class="eyebrow">Chapter 4</p>
+  <h2>The roofline</h2>
+  <p class="lede">A model's speed limit can be computed before the model is ever run.</p>
+
+  <p>Two ingredients, both already in hand. The book is 8.04 GB for bf16 Qwen3-4B and 2.26 GB for the 4-bit version. The reading speed is about 441 GB/s. Divide, and the result is the shortest possible time for one token, and therefore the highest possible tokens per second. Engineers call this limit the <b>roofline</b>, because on a plot of performance it is a ceiling nothing can pass.</p>
+
+  <div class="tablewrap"><table>
+    <tr><th>Model</th><th class="num">Book size</th><th class="num">Fastest read</th><th class="num">Ceiling</th></tr>
+    <tr><td>Qwen3-4B bf16</td><td class="num">8.04 GB</td><td class="num">18.2 ms</td><td class="num ceil">55 tok/s</td></tr>
+    <tr><td>Qwen3-4B 4-bit</td><td class="num">2.26 GB</td><td class="num">5.1 ms</td><td class="num ceil">196 tok/s</td></tr>
+  </table></div>
+
+  <h3>The measurement</h3>
+  <p>Script 02 runs the standard command, <code>mlx_lm.generate</code>, with greedy decoding and 200 new tokens, and reads its "Generation" line. On the reference machine, on AC power with nothing else running:</p>
+
+  <figure>
+    <svg viewBox="0 0 680 190" role="img" aria-labelledby="f4t"><title id="f4t">Ceiling versus measured tokens per second for two models</title>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)" font-variant-numeric="tabular-nums">
+        <line x1="150" y1="20" x2="150" y2="150" stroke="var(--rule)"/>
+        <line x1="150" y1="150" x2="640" y2="150" stroke="var(--rule)"/>
+        <g font-size="11.5" fill="var(--ink-3)" text-anchor="middle"><text x="150" y="168">0</text><text x="272.5" y="168">50</text><text x="395" y="168">100</text><text x="517.5" y="168">150</text><text x="640" y="168">200 tok/s</text></g>
+        <g stroke="var(--rule)" stroke-dasharray="2 4"><line x1="272.5" y1="20" x2="272.5" y2="150"/><line x1="395" y1="20" x2="395" y2="150"/><line x1="517.5" y1="20" x2="517.5" y2="150"/></g>
+        <text x="140" y="52" text-anchor="end" font-size="14" font-weight="600">bf16</text>
+        <rect x="150" y="30" width="134.8" height="18" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="1.2"/>
+        <text x="291" y="43" font-size="12" fill="var(--steel)" font-weight="600">ceiling 55</text>
+        <rect x="150" y="52" width="136.5" height="18" fill="var(--copper)"/>
+        <text x="293" y="65" font-size="12" fill="var(--copper)" font-weight="600">measured 55.7 · ~100%</text>
+        <text x="140" y="122" text-anchor="end" font-size="14" font-weight="600">4-bit</text>
+        <rect x="150" y="100" width="480.2" height="18" fill="var(--steel-soft)" stroke="var(--steel)" stroke-width="1.2"/>
+        <text x="626" y="95" font-size="12" fill="var(--steel)" font-weight="600" text-anchor="end">ceiling 196</text>
+        <rect x="150" y="122" width="399.1" height="18" fill="var(--copper)"/>
+        <text x="556" y="135" font-size="12" fill="var(--copper)" font-weight="600">measured 162.9 · 83%</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 4.1</b> The bf16 model decodes at the memory roofline. The 4-bit model stops 17% short of its own, for a reason Chapter 3 already explained.</figcaption>
+  </figure>
+
+  <div class="tablewrap"><table>
+    <tr><th>Model</th><th class="num">Ceiling</th><th class="num">Measured</th><th class="num">Fraction</th><th class="num">Peak memory</th></tr>
+    <tr><td>Qwen3-4B bf16</td><td class="num ceil">55</td><td class="num mine">55.7 tok/s</td><td class="num">~100%</td><td class="num">8.11 GB</td></tr>
+    <tr><td>Qwen3-4B 4-bit</td><td class="num ceil">196</td><td class="num mine">162.9 tok/s</td><td class="num">83%</td><td class="num">2.37 GB</td></tr>
+  </table></div>
+
+  <h3>Reading the two bars</h3>
+  <p><b>bf16 sits on the ceiling.</b> The weights take 18.2 ms to read and the measured step takes 18.0 ms per token (1000 ÷ 55.7). Within measurement error, the software is doing the minimum work physics allows. Nothing in Layer 2 can make this model faster except shrinking the book or getting more than one token per read.</p>
+  <p><b>4-bit is 17% short, and the shortfall is fixed overhead.</b> The 4-bit book is 3.56 times smaller, but decoding is only 2.9 times faster (162.9 ÷ 55.7). Each 4-bit step takes 6.1 ms against a 5.1 ms read: about one millisecond of per-step cost that was also present in the bf16 step but hidden in a job three times larger. This is a general law. <b>Quantization delivers less than the byte ratio, and the smaller the model, the less of the ratio it delivers.</b> Chapter 12 is about recovering that millisecond.</p>
+
+  <div class="callout steel">
+    <span class="k">What a reader can now do</span>
+    <p>Given any model's size in bytes and any machine's measured bandwidth, state its decode speed limit in one division, and say how far a measured number is from it. Every speedup claim in Part II is a claim about this fraction.</p>
+  </div>
+
+  <div class="exercise">
+    <span class="k">Exercise 4.1 · the first before/after table</span>
+    <ol>
+      <li>Compute the ceilings for a bf16 and a 4-bit model on your machine using your Chapter 3 bandwidth.</li>
+      <li>Predict the fraction of the ceiling each will reach.</li>
+      <li>Run <code>experiments/verify/02_generate_cli.py</code> and fill in a table like the one above. Record power source and background load beside it (Chapter 5 explains why).</li>
+    </ol>
+  </div>
+
+  <div class="summary">
+    <span class="k">Chapter 4 in three sentences</span>
+    <ul>
+      <li>Ceiling = measured bandwidth ÷ bytes of weights.</li>
+      <li>On the reference machine bf16 decoding is at the ceiling and 4-bit is at 83% of its own.</li>
+      <li>Quantization's speedup is always less than its byte ratio because fixed overhead does not shrink with the model.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="chapter" id="ch5">
+  <p class="eyebrow">Chapter 5</p>
+  <h2>Profiling a token</h2>
+  <p class="lede">You cannot improve what you cannot locate.</p>
+  <p>Chapter 4 showed where a model stands against its ceiling. When it falls short, the next skill is <b>profiling</b>: splitting one token's time into parts and timing each. The first step is to list what has to happen.</p>
+
+  <figure>
+    <svg viewBox="0 0 680 290" role="img" aria-labelledby="f5t"><title id="f5t">The six steps of producing one token</title>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)">
+        <rect x="40" y="20" width="600" height="150" rx="10" fill="var(--steel-soft)" stroke="var(--steel)" stroke-dasharray="5 4"/>
+        <text x="54" y="40" font-size="11.5" font-weight="600" fill="var(--steel)" letter-spacing="1.2">INSIDE THE MODEL · reads the weights</text>
+        <rect x="60" y="56" width="120" height="52" rx="6" fill="var(--paper)" stroke="var(--steel)"/>
+        <text x="120" y="78" text-anchor="middle" font-size="13.5" font-weight="600">1 · Embedding</text>
+        <text x="120" y="96" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">token id → vector</text>
+        <line x1="180" y1="82" x2="206" y2="82" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#arr)" color="var(--ink-3)"/>
+        <rect x="210" y="56" width="200" height="52" rx="6" fill="var(--paper)" stroke="var(--steel)"/>
+        <text x="310" y="78" text-anchor="middle" font-size="13.5" font-weight="600">2 · 36 transformer layers</text>
+        <text x="310" y="96" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">attention + feed-forward, most bytes</text>
+        <line x1="410" y1="82" x2="436" y2="82" stroke="var(--ink-3)" stroke-width="1.4" marker-end="url(#arr)" color="var(--ink-3)"/>
+        <rect x="440" y="56" width="180" height="52" rx="6" fill="var(--paper)" stroke="var(--steel)"/>
+        <text x="530" y="78" text-anchor="middle" font-size="13.5" font-weight="600">3 · lm_head</text>
+        <text x="530" y="96" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">score all 152k vocabulary entries</text>
+        <text x="340" y="146" text-anchor="middle" font-size="12.5" fill="var(--ink-2)">steps 1–3 are one forward pass</text>
+
+        <rect x="40" y="186" width="600" height="90" rx="10" fill="var(--copper-soft)" stroke="var(--copper)" stroke-dasharray="5 4"/>
+        <text x="54" y="206" font-size="11.5" font-weight="600" fill="var(--copper)" letter-spacing="1.2">AROUND THE MODEL · no weights read</text>
+        <rect x="60" y="220" width="160" height="42" rx="6" fill="var(--paper)" stroke="var(--copper)"/>
+        <text x="140" y="246" text-anchor="middle" font-size="13.5" font-weight="600">4 · Pick the token</text>
+        <rect x="240" y="220" width="180" height="42" rx="6" fill="var(--paper)" stroke="var(--copper)"/>
+        <text x="330" y="246" text-anchor="middle" font-size="13.5" font-weight="600">5 · Token id → text</text>
+        <rect x="440" y="220" width="180" height="42" rx="6" fill="var(--paper)" stroke="var(--copper)"/>
+        <text x="530" y="246" text-anchor="middle" font-size="13.5" font-weight="600">6 · Python loop, CPU↔GPU</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 5.1</b> The anatomy of one decode step. The first cut in any profile is the boundary between the two boxes: time the forward pass alone and compare it to the whole step.</figcaption>
+  </figure>
+
+  <h3>Timing the forward pass alone</h3>
+  <p>Script 04 loads the model, prefills the prompt so the cache is realistic, then times the bare call <code>model(x, cache=cache)</code> for one token: no sampling, no text, no generation loop. It does so twice, as a 20-step burst and as 200 sustained steps, because short bursts can mislead (see the case note below).</p>
+  <pre><code>Qwen3-4B-bf16  burst(20)  18.8 ms | sustained(200)  19.0 ms
+Qwen3-4B-4bit  burst(20)   7.3 ms | sustained(200)   7.1 ms</code></pre>
+  <p>Against a pure read of 18.2 ms, the bf16 forward pass takes 18.8: the kernels inside the model lose about 0.6 ms, 3%. The 4-bit forward pass takes 7.1 ms against a 5.1 ms read, which is the per-step overhead from Chapter 4 seen from inside.</p>
+
+  <h3>Timing what surrounds it</h3>
+  <p>Script 05 times step 4 by itself, the argmax over 151,936 logits. Script 06 runs a real decode loop in which each step's input is the previous step's chosen token, which forces a CPU-to-GPU round trip (<code>.item()</code>) every step, and records every step's time.</p>
+  <pre><code>argmax alone: 0.25 ms
+
+Qwen3-4B-bf16, dependent loop, 200 steps
+   steps   0- 19:  18.8 ms      steps 100-119:  18.9 ms
+   steps  20- 39:  18.8 ms      steps 120-139:  18.8 ms
+   steps  40- 59:  18.8 ms      steps 140-159:  18.8 ms
+   steps  60- 79:  18.7 ms      steps 160-179:  18.8 ms
+   steps  80- 99:  18.7 ms      steps 180-199:  18.8 ms
+   mean  18.8 ms ->  53.2 tok/s
+
+Qwen3-4B-4bit, dependent loop, 200 steps
+   mean   7.1 ms -> 141.0 tok/s</code></pre>
+  <p>Picking the token costs a quarter of a millisecond. The round trip costs nothing measurable: the dependent loop (18.8 ms) is indistinguishable from the bare forward pass (18.8 to 19.0). The per-step times are flat to within 1% across all 200 steps, so nothing degrades as the KV cache grows from 8 to 208 entries. The copper box of Figure 5.1 is nearly empty on this machine.</p>
+
+  <figure>
+    <svg viewBox="0 0 680 150" role="img" aria-labelledby="f5b"><title id="f5b">Where the 18.0 ms of one bf16 token go</title>
+      <g font-family="IBM Plex Sans, sans-serif" fill="var(--ink)" font-variant-numeric="tabular-nums">
+        <text x="40" y="34" font-size="13" font-weight="600">One bf16 token · 18.0 ms (from generate, 55.7 tok/s)</text>
+        <rect x="40" y="48" width="570" height="34" fill="var(--steel)" opacity="0.8"/>
+        <rect x="610" y="48" width="20" height="34" fill="var(--steel)" opacity="0.4"/>
+        <rect x="630" y="48" width="10" height="34" fill="var(--copper)" opacity="0.85"/>
+        <text x="325" y="70" text-anchor="middle" font-size="12.5" fill="#fff" font-weight="600">reading 8.04 GB of weights · 17.2 ms (95%)</text>
+        <text x="620" y="100" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">kernels</text>
+        <text x="620" y="114" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">~0.6</text>
+        <text x="656" y="100" text-anchor="middle" font-size="11.5" fill="var(--copper)">around</text>
+        <text x="656" y="114" text-anchor="middle" font-size="11.5" fill="var(--copper)">~0.3</text>
+        <text x="40" y="138" font-size="12" fill="var(--ink-2)">A profile of a healthy memory-bound decode step: almost everything is the read.</text>
+      </g>
+    </svg>
+    <figcaption><b>Figure 5.2</b> The profile of one token on the reference machine. When a model is at its roofline, the profile is boring, and boring is the goal.</figcaption>
+  </figure>
+
+  <div class="callout">
+    <span class="k">Case note · the day the laptop ran at half speed</span>
+    <p>On the first two days of these experiments the same <code>generate</code> command reported 26.6 tok/s for bf16 and 85 tok/s for 4-bit: about 45% of the ceilings. Short 20-step bursts of the forward pass were fast (19.9 ms) while longer runs were slow (36 to 41 ms), which looked like a thermal or cache-growth effect inside the model. Two days later, with the machine on AC power and idle, everything measured at the roofline and burst and sustained agreed to 0.1 ms. The slowdown was environmental and it was never identified; the candidates are battery power, Low Power Mode and heavy background processes. The episode is kept here because it is the commonest way profiling goes wrong: a gap that lives in the machine's state gets hunted for inside the code.</p>
+  </div>
+
+  <h3>Measurement rules from this chapter</h3>
+  <ul>
+    <li><b>Re-run the baseline in the same session.</b> A comparison between a fresh number and a two-day-old one is a comparison between two machine states.</li>
+    <li><b>Record the environment.</b> Power source, Low Power Mode, and the top background processes belong beside every number, as the model and prompt do. Script 00 prints them.</li>
+    <li><b>Run as long as the real workload.</b> Time 200 steps, not 20. On a healthy machine they agree; when they disagree, the disagreement is the finding.</li>
+    <li><b>Ask whether the number is possible.</b> A step that times slower than a loop doing strictly more work means the instrument is broken, not the thing measured. (A block average divided by 2 instead of 20 produced exactly such a number during these experiments and was caught this way.)</li>
+    <li><b>Do not measure tiny jobs.</b> Prefill speed on a 16-token prompt varied from 90 to 317 tok/s between identical runs: the job is a few milliseconds and fixed overhead swamps it. Prefill is measured in Chapter 6 with prompts long enough to mean something.</li>
+  </ul>
+
+  <div class="exercise">
+    <span class="k">Exercise 5.1 · profile a token on your machine</span>
+    <ol>
+      <li>Rank the six steps of Figure 5.1 by expected cost. Write the ranking down.</li>
+      <li>Run scripts 04, 05 and 06 from Appendix B. Compare the forward pass to a pure read of your model's bytes, and the dependent loop to the forward pass.</li>
+      <li>Draw your own Figure 5.2. If the copper box is large, the problem is around the model; if the steel box is far above the read time, it is inside the kernels.</li>
+    </ol>
+  </div>
+  <div class="exercise">
+    <span class="k">Exercise 5.2 · make the environment the experiment</span>
+    <ul>
+      <li>Run script 02 plugged in, then on battery, then with Low Power Mode on, then with a video playing. Predict each before running. Which conditions move the number, and by how much?</li>
+    </ul>
+  </div>
+
+  <div class="summary">
+    <span class="k">Chapter 5 in three sentences</span>
+    <ul>
+      <li>Profile by cutting at the boundary between the forward pass and everything around it.</li>
+      <li>On the reference machine the forward pass is 95% weight-reading, 3% kernels, and the surroundings cost under half a millisecond.</li>
+      <li>Before looking inside the code for a gap, rule out the machine's state; it is the cheapest check and the most often skipped.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="chapter" id="ch6">
+  <p class="eyebrow">Chapters 6 to 8 <span class="status locked">Forthcoming</span></p>
+  <h2>The rest of Part I</h2>
+  <p>Three more ideas complete the foundations. Each has an experiment attached and will be written up with measurements in the same form as Chapters 3 to 5.</p>
+  <ul class="outline">
+    <li><span class="n">6</span><div><b>Prefill, decode, and the KV cache.</b> <span class="d">Why a prompt is processed many times faster per token than the answer; what the model stores between tokens (the cache that Script 06 already carries from step to step) and what that storage costs in memory as the conversation grows.</span></div></li>
+    <li><span class="n">7</span><div><b>The free lunch.</b> <span class="d">The key experiment of the book: a forward pass over 2, 4, 8, 16 tokens costs almost the same as over one, because the weights are read once for all of them. Measuring the curve and finding its knee is what makes speculative decoding possible, and the knee's position is what limits it.</span></div></li>
+    <li><span class="n">8</span><div><b>Honest benchmarking.</b> <span class="d">The rules collected so far, turned into a reusable harness (warm-up, repeats, mean and spread, peak memory, environment) and a checklist for evaluating any before/after claim, including those in papers and READMEs.</span></div></li>
+  </ul>
+</section>
+
+<section class="chapter" id="part2">
+  <p class="eyebrow">Part II · One request, faster <span class="status locked">Forthcoming</span></p>
+  <h2>The three levers</h2>
+  <p>Part II takes the three ways of speeding up a memory-bound decoder, one per chapter group, building the simplest version of each by hand before reading production code.</p>
+  <ul class="outline">
+    <li><span class="n">9</span><div><b>Quantization.</b> <span class="d">What 4-bit storage actually holds, why model quality largely survives it, and why the speedup is always less than the byte ratio.</span></div></li>
+    <li><span class="n">10</span><div><b>Speculative decoding from scratch.</b> <span class="d">A small model guesses several tokens; the large model checks them all in one read. Writing the draft-verify-rollback loop, proving its output identical to plain decoding, and measuring acceptance length.</span></div></li>
+    <li><span class="n">11</span><div><b>DFlash.</b> <span class="d">A drafter that writes a block of 16 tokens in one pass while conditioned on the large model's hidden state. Read as an answer to the limits met in Chapter 10, with its before/after table reproduced on the reference machine.</span></div></li>
+    <li><span class="n">12</span><div><b>Kernels and attention.</b> <span class="d">Where the remaining waste hides: matrix-vector kernels, attention over a growing cache, and the fixed per-step overhead first seen in Chapter 3.</span></div></li>
+  </ul>
+</section>
+
+<section class="chapter" id="part3">
+  <p class="eyebrow">Part III · Many requests at once <span class="status locked">Forthcoming</span></p>
+  <h2>Serving</h2>
+  <p>A laptop answers one person. A server answers thousands, and the arithmetic changes: when many requests share one read of the book, decoding stops being memory-bound. These chapters are mostly reading, with small simulations where a laptop allows.</p>
+  <ul class="outline">
+    <li><span class="n">13</span><div><b>Batching and scheduling.</b> <span class="d">Sharing one read of the weights across many sequences, and why speculative decoding's gains shrink as the batch grows.</span></div></li>
+    <li><span class="n">14</span><div><b>KV cache memory.</b> <span class="d">Paged attention, prefix sharing, and why memory capacity rather than bandwidth limits how many conversations a server can hold.</span></div></li>
+    <li><span class="n">15</span><div><b>Many devices.</b> <span class="d">Tensor, pipeline and expert parallelism: splitting one book across several readers.</span></div></li>
+  </ul>
+</section>
+
+<section class="chapter" id="lab">
+  <p class="eyebrow">Appendix A</p>
+  <h2>Lab notebook</h2>
+  <p>Every measurement behind the chapters, from the verification run of 2026-10-20 (12:01, AC power, Low Power Mode off, no thermal warnings). Two consecutive runs agreed within noise; the second is shown. Earlier hand-run figures that the chapters refer to are listed at the end.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Script</th><th>Setting</th><th class="num">Result</th><th>Note</th></tr>
+    <tr><td>01</td><td>0.2 GB bf16 sum</td><td class="num mine">190 GB/s · 1.05 ms</td><td>overhead-dominated</td></tr>
+    <tr><td>01</td><td>2 GB bf16 sum</td><td class="num mine">468 GB/s · 4.27 ms</td><td>86% of spec</td></tr>
+    <tr><td>01</td><td>8 GB bf16 sum</td><td class="num mine">441 GB/s · 18.15 ms</td><td>81% of spec</td></tr>
+    <tr><td>02</td><td>generate, Qwen3-4B bf16, greedy, 200 tokens</td><td class="num mine">55.7 tok/s · 8.11 GB</td><td>ceiling 55</td></tr>
+    <tr><td>02</td><td>generate, Qwen3-4B 4-bit, greedy, 200 tokens</td><td class="num mine">162.9 tok/s · 2.37 GB</td><td>ceiling 196 · 83%</td></tr>
+    <tr><td>03</td><td>tokenize "Explain why the sky is blue."</td><td class="num mine">8 tokens</td><td>Ex·plain· why· the· sky· is· blue·.</td></tr>
+    <tr><td>03</td><td>logits shape, prefill / one token</td><td class="num mine">(1, 8, 151936) / (1, 1, 151936)</td><td>top next token ' The' at 20.88</td></tr>
+    <tr><td>04</td><td>forward pass bf16, burst 20 / sustained 200</td><td class="num mine">18.8 / 19.0 ms</td><td>pure read 18.2 ms</td></tr>
+    <tr><td>04</td><td>forward pass 4-bit, burst 20 / sustained 200</td><td class="num mine">7.3 / 7.1 ms</td><td>pure read 5.1 ms</td></tr>
+    <tr><td>05</td><td>argmax over 151,936 logits</td><td class="num mine">0.25 ms</td><td></td></tr>
+    <tr><td>06</td><td>dependent loop bf16, 200 steps</td><td class="num mine">18.8 ms flat · 53.2 tok/s</td><td>no growth with cache</td></tr>
+    <tr><td>06</td><td>dependent loop 4-bit, 200 steps</td><td class="num mine">7.1 ms flat · 141.0 tok/s</td><td></td></tr>
+  </table></div>
+  <h3>Earlier hand-run figures (2026-10-18 to 19, machine state unknown)</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Measurement</th><th class="num">Result</th><th>Note</th></tr>
+    <tr><td>bandwidth 0.2 / 2 / 8 GB</td><td class="num">150–179 / 449 / 444 GB/s</td><td>agrees with verification</td></tr>
+    <tr><td>generate bf16 / 4-bit</td><td class="num">26.6 / 85.1 tok/s</td><td>~45% of ceiling; see Chapter 5 case note</td></tr>
+    <tr><td>forward pass bf16, burst 20 / sustained 200</td><td class="num">19.9 / 41.4 ms</td><td>not reproduced</td></tr>
+    <tr><td>argmax</td><td class="num">0.19 ms</td><td>agrees</td></tr>
+  </table></div>
+</section>
+
+<section class="chapter" id="repro">
+  <p class="eyebrow">Appendix B</p>
+  <h2>Reproducing the numbers</h2>
+  <p>The experiments are seven short Python files in <code>experiments/verify/</code>, numbered in the order the chapters use them, plus a runner that executes them all and saves the raw output. Setup is a Python 3.12 virtual environment with <code>mlx</code>, <code>mlx-lm</code> and the two Qwen3-4B checkpoints from the <code>mlx-community</code> collection on Hugging Face.</p>
+  <div class="tablewrap"><table>
+    <tr><th>File</th><th>What it measures</th><th>Chapter</th></tr>
+    <tr><td><code>00_environment.py</code></td><td>time, power source, Low Power Mode, thermal notes, top CPU users</td><td>5</td></tr>
+    <tr><td><code>01_bandwidth.py</code></td><td>achievable bandwidth from sums over 0.2, 2 and 8 GB</td><td>3</td></tr>
+    <tr><td><code>02_generate_cli.py</code></td><td>the standard <code>mlx_lm.generate</code> command, bf16 and 4-bit</td><td>4</td></tr>
+    <tr><td><code>03_tokens_and_shapes.py</code></td><td>token ids, logits shapes, top-5 next tokens</td><td>2</td></tr>
+    <tr><td><code>04_forward_burst_vs_sustained.py</code></td><td>bare forward pass, 20 and 200 steps, both models</td><td>5</td></tr>
+    <tr><td><code>05_argmax.py</code></td><td>cost of choosing the token</td><td>5</td></tr>
+    <tr><td><code>06_dependent_loop_per_step.py</code></td><td>real decode loop with round trip, per-step times</td><td>5</td></tr>
+    <tr><td><code>run_all.sh</code></td><td>runs 00 to 06 and 00 again; writes <code>RESULTS_RAW.txt</code></td><td></td></tr>
+  </table></div>
+  <pre><code>experiments/verify/run_all.sh</code></pre>
+  <p>The whole set takes under a minute after the models are downloaded. The core of every timing script is the same four lines, and they are worth knowing by heart:</p>
+  <pre><code>mx.eval(work())                  # warm-up: compile and allocate, untimed
+tic = time.perf_counter()
+for _ in range(n):
+    mx.eval(work())              # mx.eval forces the lazy graph to run now
+secs = (time.perf_counter() - tic) / n</code></pre>
+</section>
+
+<section class="chapter" id="tooling">
+  <p class="eyebrow">Appendix C</p>
+  <h2>Tooling notes</h2>
+  <p>Small things that stop beginners once and should not stop them twice.</p>
+  <h3>MLX is lazy</h3>
+  <p>Writing <code>mx.sum(x)</code> does no work. MLX records an IOU and moves on; the work happens when something needs the answer. <code>mx.eval(...)</code> means "do the work now". Any timing without it measures the writing of an IOU, which takes no time. The pattern is always: start the clock, <code>mx.eval(the thing)</code>, stop the clock. A call to <code>.item()</code>, which converts a one-element array to a Python number, also forces evaluation.</p>
+  <h3>Warm up, then repeat</h3>
+  <p>The first run of anything on the GPU includes one-time setup: compiling the small program, allocating memory. Do one untimed run before the clock starts, then average several timed runs.</p>
+  <h3>The batch dimension</h3>
+  <p>Models expect a batch of sequences even when there is one. <code>mx.array(ids)[None]</code> adds that outer dimension; the logits come back as <code>(batch, positions, vocabulary)</code>.</p>
+  <h3>Running a file versus the interactive prompt</h3>
+  <p><code>.venv/bin/python</code> alone opens Python's interactive mode, with a <code>&gt;&gt;&gt;</code> prompt waiting for code. Type <code>exit()</code> to leave. To run a file, put its path after the interpreter.</p>
+  <h3>Reading an f-string</h3>
+  <p>In <code>f"read {nbytes / 1e9:.1f} GB"</code>, the <code>f</code> means "fill in the braces", the braces hold a calculation, and <code>:.1f</code> after the colon means one digit after the decimal point. <code>:3d</code> is a whole number padded to three characters. <code>1e9</code> is one billion.</p>
+  <h3>Indentation is structure</h3>
+  <p>Everything indented under a <code>for</code> runs every iteration. A summary loop that should run once must start at the left margin, or it prints every step.</p>
+  <h3>Array dimensions are limited to 2³¹ elements</h3>
+  <p>A one-dimensional array of four billion numbers overflows a 32-bit index. Give the array two dimensions, such as <code>(4000, 1_000_000)</code>; <code>mx.sum</code> still adds every element.</p>
+</section>
+
+<section class="chapter" id="glossary">
+  <p class="eyebrow">Appendix D</p>
+  <h2>Glossary</h2>
+  <dl class="glossary">
+    <dt>Activations</dt><dd>The temporary values computed for one input as it flows through the layers. Created and discarded every token, unlike the weights.</dd>
+    <dt>Argmax</dt><dd>The index of the largest value. Applied to logits, the greedy choice of next token.</dd>
+    <dt>Autoregressive decoding</dt><dd>Producing a sequence one token at a time, each new token depending on all previous ones. Each token costs one full forward pass over the weights.</dd>
+    <dt>Bandwidth</dt><dd>Bytes per second between memory and processor. Bus width × transfer rate for the spec; measured by timing a large read.</dd>
+    <dt>bf16</dt><dd>A 16-bit (2-byte) floating-point format, the usual "full precision" for inference weights.</dd>
+    <dt>Ceiling / roofline</dt><dd>The best possible speed given a hardware limit. For decoding: measured bandwidth ÷ bytes of weights.</dd>
+    <dt>Decode</dt><dd>The phase that produces the answer, one token per forward pass. Memory-bound.</dd>
+    <dt>Fixed overhead</dt><dd>The cost of launching any GPU operation regardless of its size, about half a millisecond on the reference machine. Dominates small jobs.</dd>
+    <dt>Forward pass</dt><dd>One trip of input through all the model's layers to produce logits.</dd>
+    <dt>KV cache</dt><dd>The model's stored memory of earlier tokens, so each new token does not reprocess the conversation. Chapter 6.</dd>
+    <dt>lm_head</dt><dd>The final matrix that turns a hidden vector into one logit per vocabulary entry. About a tenth of Qwen3-4B's weights.</dd>
+    <dt>Logits</dt><dd>The raw scores, one per vocabulary entry, that the model outputs for the next token.</dd>
+    <dt>Memory-bound</dt><dd>Limited by how fast bytes move rather than how fast arithmetic runs. Decoding is memory-bound.</dd>
+    <dt>Prefill</dt><dd>The phase that processes the prompt, all tokens at once. Compute-bound. Chapter 6.</dd>
+    <dt>Quantization</dt><dd>Storing weights in fewer bits, for example 4 instead of 16, to shrink the book.</dd>
+    <dt>Softmax</dt><dd>The function that turns logits into probabilities summing to one; sampling at a temperature draws from it.</dd>
+    <dt>Speculative decoding</dt><dd>Guessing several tokens cheaply and verifying them all in one pass of the large model, so one read yields several tokens.</dd>
+    <dt>tok/s and TPOT</dt><dd>Tokens per second and its inverse, time per output token. The primary decode metric; report it warmed up, sustained, with the prompt phase excluded.</dd>
+  </dl>
+</section>
+
+</main>
+</div>

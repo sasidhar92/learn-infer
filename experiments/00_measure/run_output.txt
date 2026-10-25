@@ -1,0 +1,11 @@
+Achievable memory bandwidth (2 GB reduction): 425 GB/s  (spec ~546)
+
+mlx-community/Qwen3-4B-bf16: weights 8.04 GB -> decode ceiling 53 tok/s
+  prefill 157 tok/s | decode 21.9 tok/s = 41% of ceiling
+
+mlx-community/Qwen3-4B-4bit: weights 2.26 GB -> decode ceiling 188 tok/s
+  prefill 433 tok/s | decode 70.0 tok/s = 37% of ceiling
+
+config                          tok/s   TPOT ms      ±  speedup  peak GB
+Qwen3-4B-bf16                    21.9     45.65   0.94     1.00x     8.1
+Qwen3-4B-4bit                    70.0     14.29   0.60     3.20x     2.4
