@@ -4,7 +4,7 @@ A short, hands-on book about why language models answer at the speed they do and
 make them faster. Every number in it was measured on one laptop (Apple M4 Max, 128 GB) and
 every experiment can be re-run in about a minute.
 
-**Read the book:** open [`book/index.html`](book/index.html) in a browser.
+**Read the book:** https://sasidhar92.github.io/learn-infer/ (or open [`docs/index.html`](docs/index.html) locally).
 
 Status: Part I complete through Chapter 5 (how a model makes a token, memory bandwidth,
 the roofline, profiling a token). Chapters 6 onward are outlined and fill in as the
@@ -23,7 +23,7 @@ Hugging Face on first run. Raw output lands in `experiments/verify/RESULTS_RAW.t
 
 ## Layout
 
-- `book/index.html` — the book, single file, no build step
+- `book/index.html` — the book source (body fragment); `book/build.py` wraps it into `docs/index.html` for GitHub Pages
 - `experiments/verify/` — numbered experiment scripts (00–06) and the runner
 - `experiments/00_measure/` — earlier hand-written versions of the same experiments
 - `CURRICULUM.md` — the full 10-module plan the book follows
