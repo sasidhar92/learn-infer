@@ -125,6 +125,9 @@ td.num, th.num { text-align: right; }
 .summary .k { font-family: var(--sans); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; color: var(--ink-3); display: block; margin-bottom: 6px; }
 .summary ul { margin-bottom: 0; }
 
+.build { font-family: var(--sans); font-size: 14px; color: var(--ink-2); border: 1px dashed var(--rule); border-radius: 6px; padding: 10px 14px; margin: 18px 0; }
+.build b { color: var(--ink); font-weight: 600; }
+
 @media (max-width: 900px) {
   .shell { grid-template-columns: 1fr; gap: 20px; padding-block: 20px 60px; }
   nav.toc { position: static; max-height: none; border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; }
@@ -158,8 +161,8 @@ td.num, th.num { text-align: right; }
   <a href="#part2" class="locked"><span class="n">11</span>DFlash</a>
   <a href="#part2" class="locked"><span class="n">12</span>Kernels and attention</a>
   <h2>Part III · Many requests</h2>
-  <a href="#part3" class="locked"><span class="n">13</span>Batching</a>
-  <a href="#part3" class="locked"><span class="n">14</span>KV cache memory</a>
+  <a href="#part3" class="locked"><span class="n">13</span>Batching, chunked prefill</a>
+  <a href="#part3" class="locked"><span class="n">14</span>Paged KV cache</a>
   <a href="#part3" class="locked"><span class="n">15</span>Many devices</a>
   <h2>Back matter</h2>
   <a href="#lab"><span class="n">A</span>Lab notebook</a>
@@ -193,8 +196,23 @@ td.num, th.num { text-align: right; }
     <div><div class="l">Working model</div><div class="v" style="font-size:15px">Qwen3-4B, bf16 and 4-bit</div></div>
   </div>
 
+  <h3>Choosing a model for your machine</h3>
+  <p>The experiments use Qwen3-4B because it fits comfortably on the reference machine in both precisions. On a smaller machine, pick from the same family so the chapters still apply. The rule of thumb: weights plus a few gigabytes of KV cache and working memory must fit inside unified memory with room for the operating system. Sizes below are the weight files alone.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Unified memory</th><th>Comfortable</th><th>Possible, tight</th><th>Weights</th></tr>
+    <tr><td>8 GB</td><td>Qwen3-1.7B 4-bit</td><td>Qwen3-4B 4-bit</td><td>1.0 / 2.3 GB</td></tr>
+    <tr><td>16 GB</td><td>Qwen3-4B 4-bit</td><td>Qwen3-4B bf16, Qwen3-8B 4-bit</td><td>2.3 / 8.0 / 4.6 GB</td></tr>
+    <tr><td>24–32 GB</td><td>Qwen3-4B bf16, Qwen3-8B 4-bit</td><td>Qwen3-8B bf16</td><td>8.0 / 4.6 / 16 GB</td></tr>
+    <tr><td>48–64 GB</td><td>Qwen3-8B bf16, Qwen3-30B-A3B 4-bit</td><td>Qwen3-30B-A3B bf16</td><td>16 / 17 / 61 GB</td></tr>
+    <tr><td>128 GB (reference)</td><td>anything above</td><td>Qwen3-32B bf16</td><td>65 GB</td></tr>
+  </table></div>
+  <p>Every chapter's arithmetic works for any of these: substitute the weight bytes of your model into the roofline of Chapter 4 and the ratios carry over. The <code>mlx-community</code> collection on Hugging Face has each of them in both precisions.</p>
+
   <h3>Two colours</h3>
   <p>In every figure, <span class="ceil">steel blue</span> marks a theoretical limit: something arithmetic or physics says cannot be exceeded. <span class="mine">Copper</span> marks a measurement. Most of this book is about the distance between the two, and what fills it.</p>
+
+  <h3>A companion course</h3>
+  <p>This book measures; it does not rebuild the model. Readers who want to write attention, RoPE, the KV cache and a paged-attention server themselves, in MLX on the same hardware, should pair it with <a href="https://github.com/skyzh/tiny-llm">tiny-llm</a> by Alex Chi, which does exactly that with tests against MLX as the correctness oracle. Chapters here end with a "Build it" pointer to the tiny-llm chapter that implements what was just measured. The natural time to start it is after Chapter 8, once the measurement toolkit is complete.</p>
 </section>
 
 <section class="chapter" id="ch1">
@@ -367,6 +385,8 @@ td.num, th.num { text-align: right; }
     <li><b>Write several words per read.</b> If one pass over the weights could produce many tokens instead of one, each token would cost a fraction of a read. That is speculative decoding (Chapter 10), and DFlash's contribution is a drafter that produces up to 16 tokens per read (Chapter 11).</li>
     <li><b>Waste less while reading.</b> Make the read itself run at full speed and remove delays around it. That is the world of kernels (Chapter 12).</li>
   </ul>
+
+  <div class="build"><b>Build it.</b> tiny-llm Week 1, chapters 1.5 "Load the Model" to 1.7 "Sampling", implements this loop from array operations: load the weights, run the forward pass, pick a token, append, repeat.</div>
 
   <div class="summary">
     <span class="k">Chapter 2 in three sentences</span>
@@ -657,6 +677,8 @@ Qwen3-4B-4bit, dependent loop, 200 steps
     </ul>
   </div>
 
+  <div class="build"><b>Build it.</b> The 36 layers inside the steel box of Figure 5.1 are tiny-llm Week 1, chapters 1.1 "Attention" to 1.4 "RMSNorm and MLP". Writing them is the way to learn what the 18 ms of reading actually feeds.</div>
+
   <div class="summary">
     <span class="k">Chapter 5 in three sentences</span>
     <ul>
@@ -672,9 +694,9 @@ Qwen3-4B-4bit, dependent loop, 200 steps
   <h2>The rest of Part I</h2>
   <p>Three more ideas complete the foundations. Each has an experiment attached and will be written up with measurements in the same form as Chapters 3 to 5.</p>
   <ul class="outline">
-    <li><span class="n">6</span><div><b>Prefill, decode, and the KV cache.</b> <span class="d">Why a prompt is processed many times faster per token than the answer; what the model stores between tokens (the cache that Script 06 already carries from step to step) and what that storage costs in memory as the conversation grows.</span></div></li>
-    <li><span class="n">7</span><div><b>The free lunch.</b> <span class="d">The key experiment of the book: a forward pass over 2, 4, 8, 16 tokens costs almost the same as over one, because the weights are read once for all of them. Measuring the curve and finding its knee is what makes speculative decoding possible, and the knee's position is what limits it.</span></div></li>
-    <li><span class="n">8</span><div><b>Honest benchmarking.</b> <span class="d">The rules collected so far, turned into a reusable harness (warm-up, repeats, mean and spread, peak memory, environment) and a checklist for evaluating any before/after claim, including those in papers and READMEs.</span></div></li>
+    <li><span class="n">6</span><div><b>Prefill, decode, and the KV cache.</b> <span class="d">Why a prompt is processed many times faster per token than the answer; what the model stores between tokens (the cache that Script 06 already carries from step to step) and what that storage costs in memory as the conversation grows. Build it: tiny-llm 2.1 "Cache and Measure".</span></div></li>
+    <li><span class="n">7</span><div><b>The free lunch.</b> <span class="d">The key experiment of the book: a forward pass over 2, 4, 8, 16 tokens costs almost the same as over one, because the weights are read once for all of them. Measuring the curve and finding its knee is what makes speculative decoding possible, and the knee's position is what limits it. Build it: tiny-llm 2.3 "SIMD Matrix Prefill".</span></div></li>
+    <li><span class="n">8</span><div><b>Honest benchmarking.</b> <span class="d">The rules collected so far, turned into a reusable harness (warm-up, repeats, mean and spread, peak memory, environment) and a checklist for evaluating any before/after claim, including those in papers and READMEs. From here on every exercise ships with a test that compares its output to the baseline's, in the manner of tiny-llm's per-chapter tests.</span></div></li>
   </ul>
 </section>
 
@@ -683,21 +705,21 @@ Qwen3-4B-4bit, dependent loop, 200 steps
   <h2>The three levers</h2>
   <p>Part II takes the three ways of speeding up a memory-bound decoder, one per chapter group, building the simplest version of each by hand before reading production code.</p>
   <ul class="outline">
-    <li><span class="n">9</span><div><b>Quantization.</b> <span class="d">What 4-bit storage actually holds, why model quality largely survives it, and why the speedup is always less than the byte ratio.</span></div></li>
-    <li><span class="n">10</span><div><b>Speculative decoding from scratch.</b> <span class="d">A small model guesses several tokens; the large model checks them all in one read. Writing the draft-verify-rollback loop, proving its output identical to plain decoding, and measuring acceptance length.</span></div></li>
+    <li><span class="n">9</span><div><b>Quantization.</b> <span class="d">What 4-bit storage actually holds, why model quality largely survives it, and why the speedup is always less than the byte ratio. Build it: tiny-llm 2.2 "Keep W4 Packed".</span></div></li>
+    <li><span class="n">10</span><div><b>Speculative decoding from scratch.</b> <span class="d">A small model guesses several tokens; the large model checks them all in one read. Writing the draft-verify-rollback loop, proving its output identical to plain decoding, and measuring acceptance length. Build it: tiny-llm 3.7 "Speculative Decoding".</span></div></li>
     <li><span class="n">11</span><div><b>DFlash.</b> <span class="d">A drafter that writes a block of 16 tokens in one pass while conditioned on the large model's hidden state. Read as an answer to the limits met in Chapter 10, with its before/after table reproduced on the reference machine.</span></div></li>
-    <li><span class="n">12</span><div><b>Kernels and attention.</b> <span class="d">Where the remaining waste hides: matrix-vector kernels, attention over a growing cache, and the fixed per-step overhead first seen in Chapter 3.</span></div></li>
+    <li><span class="n">12</span><div><b>Kernels and attention.</b> <span class="d">Where the remaining waste hides: matrix-vector kernels, attention over a growing cache, and the fixed per-step overhead first seen in Chapter 3. Build it: tiny-llm 2.4 "Fused Model Primitives" and 2.5 "Tiled Dense Prefill Attention".</span></div></li>
   </ul>
 </section>
 
 <section class="chapter" id="part3">
   <p class="eyebrow">Part III · Many requests at once <span class="status locked">Forthcoming</span></p>
   <h2>Serving</h2>
-  <p>A laptop answers one person. A server answers thousands, and the arithmetic changes: when many requests share one read of the book, decoding stops being memory-bound. These chapters are mostly reading, with small simulations where a laptop allows.</p>
+  <p>A laptop answers one person. A server answers thousands, and the arithmetic changes: when many requests share one read of the book, decoding stops being memory-bound. The chapter order follows the dependency order of tiny-llm's Week 3, and its reference implementation, which runs on a Mac, serves as the system under measurement, so Part III is measured rather than only read.</p>
   <ul class="outline">
-    <li><span class="n">13</span><div><b>Batching and scheduling.</b> <span class="d">Sharing one read of the weights across many sequences, and why speculative decoding's gains shrink as the batch grows.</span></div></li>
-    <li><span class="n">14</span><div><b>KV cache memory.</b> <span class="d">Paged attention, prefix sharing, and why memory capacity rather than bandwidth limits how many conversations a server can hold.</span></div></li>
-    <li><span class="n">15</span><div><b>Many devices.</b> <span class="d">Tensor, pipeline and expert parallelism: splitting one book across several readers.</span></div></li>
+    <li><span class="n">13</span><div><b>Continuous batching and chunked prefill.</b> <span class="d">Sharing one read of the weights across many in-flight requests, admitting new ones mid-stream, and splitting long prompts so they do not stall everyone else. Why speculative decoding's gains shrink as the batch grows. Build it: tiny-llm 3.1 and 3.2.</span></div></li>
+    <li><span class="n">14</span><div><b>Paged KV cache and paged attention.</b> <span class="d">Storing each request's cache in fixed-size blocks so memory is not wasted on reservations, and an attention kernel that reads those blocks directly. Why memory capacity rather than bandwidth limits how many conversations a server can hold. Build it: tiny-llm 3.3 to 3.5.</span></div></li>
+    <li><span class="n">15</span><div><b>Many devices.</b> <span class="d">Tensor, pipeline and expert parallelism: splitting one book across several readers. Mixture-of-experts models as a preview: tiny-llm 3.6.</span></div></li>
   </ul>
 </section>
 

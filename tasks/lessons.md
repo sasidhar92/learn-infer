@@ -40,3 +40,8 @@
   Rule for the book: neutral authorial voice, principles first, measured numbers as evidence,
   mistakes folded into "case notes" and "measurement rules", no "pending/revised" scaffolding,
   forthcoming chapters shown as outlines. Lab notebook + reproduction appendix hold the raw record.
+
+- 2026-10-25: Repo is public at github.com/sasidhar92/learn-infer; book served by GitHub Pages
+  from docs/ at https://sasidhar92.github.io/learn-infer/. Routine after EVERY book update:
+  (1) edit book/index.html, (2) python3 book/build.py, (3) republish artifact,
+  (4) git add -A && git commit && git push origin main. Sasi asked that new chapters be committed.
